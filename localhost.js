@@ -2,8 +2,8 @@ var net = require('net');
 var http = require('http');
 
 var remoteParams = {
-	'host' : '192.168.4.86',
-	'port' : 5555
+	'host' : '127.0.0.1',
+	'port' : 7123 
 };
 
 var localParams = {
@@ -35,9 +35,10 @@ remotePipe.on('data', function(data) {
 		return;
 	}
 
-	data.port = localParams.port;
-	data.host = localParams.host;
-	data.path = data.url;
+	data.port         = localParams.port;
+	data.host         = localParams.host;
+	data.path         = data.url;
+	data.headers.host = localParams.host+':'+localParams.port;
 
 	// Make a http request to the local http server
 	console.log('[remote] making request');
@@ -47,9 +48,15 @@ remotePipe.on('data', function(data) {
 		response.on('data', function(chunk){
 console.log('[local] chunk');
 console.log(chunk);
-
+			var resp = {
+				'statusCode' : response.statusCode,
+				'body' : chunk.toString()
+			};
+			var buff = new Buffer(JSON.stringify(resp));
+			remotePipe.write(buff);
 		});
 	});
+
 
 	request.on('error', function(e){
 		console.log('[local] error');
@@ -63,6 +70,8 @@ console.log(chunk);
 		var buff = new Buffer(JSON.stringify(resp));
 		remotePipe.write(buff);
 	});
+
+	request.end();
 
 
 //	remotePipe.end();

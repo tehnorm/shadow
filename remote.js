@@ -1,5 +1,8 @@
 var net = require('net');
 var http = require('http');
+
+
+
 /*
  *  REQUEST   [ external request ] -> [ http server ] -> [ socket ] -> [ local socket ] -> [ request to localhost ]
  *  RESPONSE  [ localhost response ] -> [ local socket ] -> [ socket ] -> [ http response ] 
@@ -9,6 +12,7 @@ var http = require('http');
 
 var localPipe = net.createServer(function(c) { //'connection' listener
 	console.log('[localPipe] connected');
+	c.setMaxListeners(0);
 	c.on('end', function() {
 		console.log('[localPipe] disconnected');
 		external.close();
@@ -46,13 +50,15 @@ var localPipe = net.createServer(function(c) { //'connection' listener
 		c.write(buff);	
 	});
 
+	external.setMaxListeners(0);
+
 	external.listen(7777, function(){
 		console.log('[external] listen');
 	});
 
 });
 
-localPipe.listen(5555, function() { //'listening' listener
+localPipe.listen(7123, function() { //'listening' listener
 	console.log('[localPipe] bound');
 });
 
