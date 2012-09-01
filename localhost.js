@@ -26,62 +26,72 @@ var remotePipe = net.connect(remoteParams, function() {
 });
 remotePipe.setKeepAlive(true);
 remotePipe.on('data', function(data) {
-	debug('[remote] got request', data.toString());
+	data = data.toString();
+	debug('[remote] got request', data);
+	d = data.split("\r\n");
+debug(d);
 
-	try {
-		data = JSON.parse(data.toString());
-	} catch(e){
-		debug('[remote] invalid request');
-		debug(data.toString());
-		var resp = {
-			'statusCode' : 404,
-			'body' : 'remotePipe could not parse request'
-		};
-
-		debug('[remote] resp:', resp);
-		var buff = new Buffer(JSON.stringify(resp));
-		remotePipe.write(buff);
-		return;
-	}
-
-	data.port         = localParams.port;
-	data.host         = localParams.host;
-	data.path         = data.url;
-	data.headers.host = localParams.host+':'+localParams.port;
-
-	// Make a http request to the local http server
-	debug('[remote] making request: '+data.headers.host+data.url, data);
-	var request = http.request(data, function(response){
-		response.once('data', function(chunk){
-			debug('[local] chunk', chunk);
-			debug('[local] chunk string size:' + chunk.toString().length);
-			debug('[local] chunk buffer size:' + chunk.length);
-console.log(chunk);
+	for(i=0; i<d.length; i++){
+		data = d[i];
+		if(data.length < 1){
+			continue;
+		}
+debug(data);
+		try {
+			data = JSON.parse(data);
+		} catch(e){
+			debug('[remote] invalid request');
+			debug(data);
 			var resp = {
-				'statusCode' : response.statusCode,
-				'body' : chunk.toString('base64'),
-				'headers' : response.headers
+				'statusCode' : 404,
+				'body' : 'remotePipe could not parse request'
 			};
+
+			debug('[remote] resp:', resp);
+			var buff = new Buffer(JSON.stringify(resp));
+			remotePipe.write(buff);
+			return;
+		}
+
+		data.port         = localParams.port;
+		data.host         = localParams.host;
+		data.path         = data.url;
+		data.headers.host = localParams.host+':'+localParams.port;
+
+		// Make a http request to the local http server
+		debug('[remote] making request: '+data.headers.host+data.url, data);
+		var request = http.request(data, function(response){
+			response.once('data', function(chunk){
+				debug('[local] chunk', chunk);
+				debug('[local] chunk string size:' + chunk.toString().length);
+				debug('[local] chunk buffer size:' + chunk.length);
+	console.log(chunk);
+				var resp = {
+					'statusCode' : response.statusCode,
+					'body' : chunk.toString('base64'),
+					'headers' : response.headers
+				};
+				var buff = new Buffer(JSON.stringify(resp));
+				remotePipe.write(buff+"\r\n");
+			});
+		});
+
+
+		request.on('error', function(e){
+			debug('[local] fucking error', e);
+			debug(e);
+			var resp = {
+				'statusCode' : 404,
+				'body' : 'remotePipe local request error'
+			};
+
+			debug('[local] error resp', resp);
 			var buff = new Buffer(JSON.stringify(resp));
 			remotePipe.write(buff);
 		});
-	});
 
-
-	request.on('error', function(e){
-		debug('[local] error', e);
-		var resp = {
-			'statusCode' : 404,
-			'body' : 'remotePipe local request error'
-		};
-
-		debug('[local] error resp', resp);
-		var buff = new Buffer(JSON.stringify(resp));
-		remotePipe.write(buff);
-	});
-
-	request.end();
-
+		request.end();
+	}
 
 //	remotePipe.end();
 });

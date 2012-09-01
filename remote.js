@@ -29,26 +29,35 @@ var localPipe = net.createServer(function(c) { //'connection' listener
 		debug('[localPipe] drain - write buffer empty');
 	});
 
-//	c.write('hello\r\n');
-//	c.pipe(c);
-
 	// Only create the http server if we have a local connection
 	var external = http.createServer(function (req, res) {
 		debug('[external] incomming request');
 
-		var chunks = new Array();
-
 		// Setup the callback for data responses
 		c.once('data', function(data){
-			debug('[localPipe] data', data.toString());
-			debug(data.toString());
-			chunks.push(data);
-			var data = JSON.parse(data.toString());
-			res.writeHead(data.statusCode, data.headers);
-			debug('[localPipe] body string size: '+ data.body.length);
-			debug('[localPipe] body string: '+ data.body);
-			res.write(new Buffer(data.body, 'base64'));
-			res.end();
+			data = data.toString();
+			debug('[localPipe] data', data);
+			debug(data);
+			var d = data.split("\r\n"); 
+			for (i=0; i<d.length; i++) {
+				var data = d[i];
+				if(data.length < 1){
+					continue;
+				}
+debug(data);
+				try {
+				data = JSON.parse(data);
+				} catch (e){
+debug(e);
+				res.end();
+continue;
+				}
+				res.writeHead(data.statusCode, data.headers);
+				debug('[localPipe] body string size: '+ data.body.length);
+				debug('[localPipe] body string: '+ data.body);
+				res.write(new Buffer(data.body, 'base64'));
+				res.end();
+			}
 		});
 
 		c.once('end', function() {
@@ -64,11 +73,11 @@ var localPipe = net.createServer(function(c) { //'connection' listener
 			'statusCode' : req.statusCode
 		};
 		debug('[external] request:' + req.url, cerial);
-
-		var buff = new Buffer(JSON.stringify(cerial));
+		debug(cerial);
 
 		// Make the request to the pipe
-		c.write(buff);	
+		var buff = new Buffer(JSON.stringify(cerial));
+		c.write(buff+"\r\n");	
 	});
 
 	external.setMaxListeners(0);
