@@ -1,7 +1,9 @@
 var net = require('net');
 var http = require('http');
 
-verbose = false;
+var verbose = false;
+var seq = 0;
+var queue = new Array();
 var debug = function(){
         var args = Array.prototype.slice.call(arguments);
         console.log(args[0]);
@@ -27,16 +29,23 @@ var localPipe = net.createServer(function(c) { //'connection' listener
 
 	c.once('drain', function(data) {
 		debug('[localPipe] drain - write buffer empty');
+		c.resume();
 	});
 
 	// Only create the http server if we have a local connection
 	var external = http.createServer(function (req, res) {
-		debug('[external] incomming request');
+		queue[seq] = {
+			'req' : req,
+			'res' : res
+		};
 
 		// Setup the callback for data responses
 		c.once('data', function(data){
+			debug('[localPipe] buffer size:  ' + data.length);
 			data = data.toString();
 			debug('[localPipe] data', data);
+			debug('[localPipe] bytesRead ' + c.bytesRead);
+			debug('[localPipe] data size' + data.length);
 			debug(data);
 			var d = data.split("\r\n"); 
 			for (i=0; i<d.length; i++) {
@@ -44,19 +53,23 @@ var localPipe = net.createServer(function(c) { //'connection' listener
 				if(data.length < 1){
 					continue;
 				}
-debug(data);
 				try {
-				data = JSON.parse(data);
+					data = JSON.parse(data);
 				} catch (e){
-debug(e);
-				res.end();
-continue;
+					debug(e);
+		//			debug(data);
+					continue;
 				}
-				res.writeHead(data.statusCode, data.headers);
-				debug('[localPipe] body string size: '+ data.body.length);
-				debug('[localPipe] body string: '+ data.body);
-				res.write(new Buffer(data.body, 'base64'));
-				res.end();
+
+				if(queue[data.seq] !== false){
+					var r = queue[data.seq].res;
+					r.writeHead(data.statusCode, data.headers);
+					// debug('[localPipe] body string size: '+ data.body.length);
+					// debug('[localPipe] body string: '+ data.body);
+					r.write(new Buffer(data.body, 'base64'));
+					r.end();
+					
+				}
 			}
 		});
 
@@ -67,17 +80,22 @@ continue;
 
 
 		var cerial = {
+			'seq' : seq,
 			'headers' : req.headers,
 			'url' : req.url,
 			'method' : req.method,
 			'statusCode' : req.statusCode
 		};
 		debug('[external] request:' + req.url, cerial);
-		debug(cerial);
+		// debug(cerial);
 
 		// Make the request to the pipe
 		var buff = new Buffer(JSON.stringify(cerial));
-		c.write(buff+"\r\n");	
+		var flushed = c.write(buff+"\r\n");
+		if(!flushed){
+			c.pause();
+		}
+		seq++;	
 	});
 
 	external.setMaxListeners(0);

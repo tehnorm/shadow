@@ -29,14 +29,12 @@ remotePipe.on('data', function(data) {
 	data = data.toString();
 	debug('[remote] got request', data);
 	d = data.split("\r\n");
-debug(d);
 
 	for(i=0; i<d.length; i++){
 		data = d[i];
 		if(data.length < 1){
 			continue;
 		}
-debug(data);
 		try {
 			data = JSON.parse(data);
 		} catch(e){
@@ -58,31 +56,38 @@ debug(data);
 		data.path         = data.url;
 		data.headers.host = localParams.host+':'+localParams.port;
 
+		debug('[remote] request: ' + data.url);
+
 		// Make a http request to the local http server
 		debug('[remote] making request: '+data.headers.host+data.url, data);
 		var request = http.request(data, function(response){
-			response.once('data', function(chunk){
+			var seq = this.seq;
+			response.on('data', function(chunk){
 				debug('[local] chunk', chunk);
 				debug('[local] chunk string size:' + chunk.toString().length);
 				debug('[local] chunk buffer size:' + chunk.length);
-	console.log(chunk);
 				var resp = {
 					'statusCode' : response.statusCode,
 					'body' : chunk.toString('base64'),
-					'headers' : response.headers
+					'headers' : response.headers,
+					'seq' : seq
 				};
 				var buff = new Buffer(JSON.stringify(resp));
-				remotePipe.write(buff+"\r\n");
+				var flushed = remotePipe.write(buff+"\r\n");
+				if(!flushed){
+					remotePipe.pause();
+				}
 			});
 		});
-
+		request.seq = data.seq;
 
 		request.on('error', function(e){
 			debug('[local] fucking error', e);
 			debug(e);
 			var resp = {
 				'statusCode' : 404,
-				'body' : 'remotePipe local request error'
+				'body' : 'remotePipe local request error',
+				'seq' : this.seq
 			};
 
 			debug('[local] error resp', resp);
@@ -97,4 +102,8 @@ debug(data);
 });
 remotePipe.on('end', function() {
 	debug('remotePipe disconnected');
+});
+remotePipe.on('drain', function() {
+	debug('remotePipe drain');
+	remotePipe.resume();
 });
