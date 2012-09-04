@@ -16,3 +16,8 @@ On your local machine edit localhost.js and change remoteParams and localParams 
 ```node localhost.js```
 
 Once the tunnel is connected traffic from your ```REMOTEHOST:7777``` will be proxied to your localhost web server.
+
+
+# Know Issues
+
+To say shadow is quick would be to say pigs taste of lemon and fly. Not sure the exact cause but dnode seems to slow things down. Possibly the overhead of repeated remote calls.
