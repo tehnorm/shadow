@@ -6,13 +6,13 @@ Shadow is meant to be a reverse proxy much like localtunnel.com but you can run 
 
 Deploy the repo to a external server. 
 
-node remote.js
+```node remote.js```
 
 This will start webserver on port 7777 for incoming external requests.
 
 
 On your local machine edit localhost.js and change remoteParams and localParams objects to contain proper config values. 
 
-node localhost.js
+```node localhost.js```
 
-Once the tunnel is connected traffic from your REMOTEHOST:7777 will be proxied to your localhost web server.
+Once the tunnel is connected traffic from your ```REMOTEHOST:7777``` will be proxied to your localhost web server.
