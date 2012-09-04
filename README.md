@@ -15,4 +15,4 @@ On your local machine edit localhost.js and change remoteParams and localParams 
 
 node localhost.js
 
-Once the tunnel is connected traffic from your <remote host>:7777 will be proxied to your localhost web server.
+Once the tunnel is connected traffic from your REMOTEHOST:7777 will be proxied to your localhost web server.
