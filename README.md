@@ -20,4 +20,4 @@ Once the tunnel is connected traffic from your ```REMOTEHOST:7777``` will be pro
 
 # Know Issues
 
-To say shadow is quick would be to say pigs taste of lemon and fly. Not sure the exact cause but dnode seems to slow things down. Possibly the overhead of repeated remote calls.
+Shadown is not know for it's quickness. Not sure the exact cause but dnode seems to slow things down. Possibly the overhead of repeated remote calls.
