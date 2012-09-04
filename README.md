@@ -4,7 +4,7 @@ Shadow is meant to be a reverse proxy much like localtunnel.com but you can run 
 
 # Usage
 
-Deploy the repo to a external server. 
+Deploy the repo to an external server.
 
 ```node remote.js```
 
